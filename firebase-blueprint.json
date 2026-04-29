@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "enum": ["Admin", "Teacher", "Student"] },
+        "avatar": { "type": "string" },
+        "studentData": {
+          "type": "object",
+          "properties": {
+            "avgScore": { "type": "number" },
+            "quizCount": { "type": "number" },
+            "badges": { "type": "array" },
+            "strengths": { "type": "array" },
+            "weaknesses": { "type": "array" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Class": {
+      "title": "Class",
+      "description": "Educational class information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "studentIds": { "type": "array" },
+        "subject": { "type": "string" }
+      },
+      "required": ["name", "teacherId", "subject"]
+    },
+    "TimetableSlot": {
+      "title": "Timetable Slot",
+      "description": "A single scheduled lesson",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "subject": { "type": "string" },
+        "day": { "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "room": { "type": "string" }
+      },
+      "required": ["classId", "teacherId", "day", "startTime", "endTime"]
+    },
+    "Quiz": {
+      "title": "Quiz",
+      "description": "Quiz definition for personalized testing",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "difficulty": { "enum": ["Easy", "Medium", "Hard"] },
+        "subject": { "type": "string" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "options": { "type": "array" },
+              "correctAnswer": { "type": "number" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "creatorId", "difficulty", "questions"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Student quiz results",
+      "type": "object",
+      "properties": {
+        "quizId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "score": { "type": "number" },
+        "maxScore": { "type": "number" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["quizId", "studentId", "score"]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "System-wide announcement",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "audience": { "enum": ["All", "Students", "Teachers"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "authorId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "classes/{classId}": {
+      "schema": "Class",
+      "description": "Classes"
+    },
+    "timetable/{slotId}": {
+      "schema": "TimetableSlot",
+      "description": "Timetable slots"
+    },
+    "quizzes/{quizId}": {
+      "schema": "Quiz",
+      "description": "Quizzes"
+    },
+    "submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Quiz submissions"
+    },
+    "notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "Announcements"
+    }
+  }
+}

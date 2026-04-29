@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // 4. Entity Specific Validators
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'role']) &&
+             data.uid == request.auth.uid &&
+             data.role in ['Admin', 'Teacher', 'Student'] &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    }
+
+    function isValidQuiz(data) {
+      return data.keys().hasAll(['title', 'creatorId', 'difficulty', 'questions']) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.difficulty in ['Easy', 'Medium', 'Hard'] &&
+             data.creatorId == request.auth.uid;
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['quizId', 'studentId', 'score']) &&
+             data.studentId == request.auth.uid &&
+             data.score is number && data.score >= 0;
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidUser(incoming()) && (incoming().role == 'Student'); // Self-register as student only
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'avatar'])) ||
+        isAdmin()
+      );
+    }
+
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher');
+    }
+
+    match /timetable/{slotId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher');
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if isSignedIn();
+      allow create: if (isAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher') && isValidQuiz(incoming());
+      allow update: if (isAdmin() || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher' && existing().creatorId == request.auth.uid)) && 
+                      isValidQuiz(incoming());
+      allow delete: if isAdmin() || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher' && existing().creatorId == request.auth.uid);
+    }
+
+    match /submissions/{submissionId} {
+      allow get: if isSignedIn() && (existing().studentId == request.auth.uid || isAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher');
+      allow list: if isSignedIn() && (resource.data.studentId == request.auth.uid || isAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher');
+      allow create: if isSignedIn() && isValidSubmission(incoming());
+    }
+
+    match /notices/{noticeId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Teacher');
+    }
+  }
+}

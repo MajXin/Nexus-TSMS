@@ -1,0 +1,11 @@
+{
+  "name": "Nexus TSMS",
+  "description": "A minimalist, high-performance Teacher-Student Management System featuring AI-driven personalized quizzes, conflict-free timetable generation, and a study-buddy matching system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "User Authentication",
+    "Real-time Database",
+    "Smart Algorithmic Scheduling",
+    "Interactive Educational Tools"
+  ]
+}
